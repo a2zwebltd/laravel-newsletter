@@ -1,0 +1,81 @@
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "a2zwebltd/laravel-newsletter",
+    "description": "A portable Laravel newsletter / broadcast-mailing engine — admin-authored mailings to registered users and external subscribers, approval → schedule → send workflow, per-recipient tracking, double opt-in subscribe/verify/unsubscribe flow, queued delivery with rate limiting, mail templates, and Nova admin resources.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "laravel",
+        "newsletter",
+        "mailing",
+        "broadcast",
+        "subscribers",
+        "email",
+        "nova"
+    ],
+    "homepage": "https://github.com/a2zwebltd/laravel-newsletter",
+    "support": {
+        "issues": "https://github.com/a2zwebltd/laravel-newsletter/issues",
+        "source": "https://github.com/a2zwebltd/laravel-newsletter"
+    },
+    "authors": [
+        {
+            "name": "A2Z WEB",
+            "homepage": "https://a2zweb.co/"
+        },
+        {
+            "name": "Dawid Makowski",
+            "role": "Maintainer",
+            "homepage": "https://github.com/makowskid"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "laravel/framework": "^11.0|^12.0|^13.0",
+        "cviebrock/eloquent-sluggable": "^11.0|^12.0",
+        "dyrynda/laravel-model-uuid": "^8.0",
+        "spatie/laravel-settings": "^3.0",
+        "tijsverkoyen/css-to-inline-styles": "^2.2"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.25",
+        "orchestra/testbench": "^9.0|^10.0|^11.0",
+        "pestphp/pest": "^3.0|^4.0",
+        "pestphp/pest-plugin-laravel": "^3.0|^4.0"
+    },
+    "suggest": {
+        "laravel/nova": "Auto-registers Nova resources (Mailing, MailingType, MailingSubscriber, MailingRecipient) when present.",
+        "ashallendesign/short-url": "Enables automatic CTA-link shortening on saved mailings.",
+        "spatie/laravel-markdown": "Optional richer markdown rendering inside mail templates."
+    },
+    "autoload": {
+        "psr-4": {
+            "A2ZWeb\\Newsletter\\": "src/",
+            "A2ZWeb\\Newsletter\\Database\\Factories\\": "database/factories/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "A2ZWeb\\Newsletter\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "A2ZWeb\\Newsletter\\NewsletterServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "scripts": {
+        "test": "vendor/bin/pest",
+        "lint": "vendor/bin/pint"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}
