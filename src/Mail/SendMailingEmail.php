@@ -30,7 +30,10 @@ class SendMailingEmail extends Mailable
         $nameTag = '{name}';
         $recipientModel = $this->resolveRecipientModel();
         $personalizedName = $recipientModel?->getPersonalizedName() ?: 'there';
-        $user_uuid = $recipientModel?->getUuid() ?? '';
+        // Keep this nullable (not ''): test sends and anonymous recipients have no uuid, and a
+        // template guarding the unsubscribe link with isset($user_uuid) would otherwise pass on
+        // an empty string and call route('unsubscribe.show', ['uuid' => '']) → missing-parameter.
+        $user_uuid = $recipientModel?->getUuid() ?: null;
 
         $subject = str_replace($nameTag, $personalizedName, $this->mailing->getTitle() ?? '');
         $content = str_replace($nameTag, $personalizedName, $this->mailing->getContent() ?? '');
