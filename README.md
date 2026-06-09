@@ -77,42 +77,37 @@ See `config/newsletter.php`. Highlights:
 
 ## Email CSS inlining (optional)
 
-Many email clients ignore `<style>` blocks and `<link>` stylesheets, so the package can inline a
-compiled stylesheet into every mailing's HTML. This is **off by default** (`inline_css_path` is
-`null`) — mailings then rely on whatever inline styles your templates already carry.
+The **bundled templates are already self-contained** — every element carries inline `style`
+attributes — so they render correctly with **no extra CSS** and `inline_css_path` left at its
+default `null`. You only need this feature if you ship **custom templates** that style elements via
+CSS classes (e.g. a markdown body whose `<p>`/`<h1>`/`<code>` come from a class rule), since most
+email clients strip `<style>`/`<link>`.
 
 To enable it, point `inline_css_path` (or the `NEWSLETTER_INLINE_CSS_PATH` env var) at the
-**absolute path of a compiled CSS file**:
+**absolute path of a CSS file**; its rules are inlined onto matching elements at send time:
 
 ```env
 NEWSLETTER_INLINE_CSS_PATH="${PWD}/public/build/assets/mail.css"
 ```
 
-The file is read at send time and its rules are inlined onto matching elements. **A missing file
-silently disables inlining — it never throws** — so a broken or skipped build degrades to unstyled
-emails rather than failing the queue job.
+**A missing file silently disables inlining — it never throws** — so a broken or skipped build
+degrades to plain templates rather than failing the queue job.
 
-### Building the CSS (Tailwind v4)
+> ⚠️ **Do NOT point this at raw Tailwind v4 output.** Tailwind v4 compiles utilities and `@apply`
+> into `@layer` rules full of CSS custom properties (`padding: calc(var(--spacing) * 6)`) and
+> `oklch()` colors. Those references resolve from `:root`/`@theme`, which email clients strip — so
+> once inlined onto an element they **collapse to nothing** (lost padding, fonts, colors). The
+> inliner needs **plain, literal CSS**: explicit `px`/`%` and hex/rgb colors, no `var()`, no
+> `oklch()`, no `@layer`/`@apply`. Hand-write the email stylesheet (or post-process Tailwind output
+> to literal values) and build it before the app serves — it is host-specific, so the package does
+> not ship it. A minimal example:
 
-You compile this stylesheet yourself as part of your asset / deploy pipeline — it is host-specific
-(your brand colors, fonts and email templates), so the package does not ship it.
-
-> ⚠️ **Tailwind v4 gotcha:** in v4 the `tailwindcss` npm package **no longer ships a standalone CLI
-> binary** — `npx tailwindcss` / `pnpm exec tailwindcss` will fail. The CLI moved to a separate
-> `@tailwindcss/cli` package.
-
-```bash
-# install the CLI once
-npm i -D @tailwindcss/cli            # or: pnpm add -D @tailwindcss/cli
-
-# build step — run BEFORE the app serves (CI / deploy), not at request time
-npx @tailwindcss/cli -i resources/css/mail.css -o public/build/assets/mail.css --minify
+```css
+/* resources/css/mail.css — plain, email-safe CSS */
+.content-wrap p  { padding: 8px 0; font-size: 16px; line-height: 1.625 !important; }
+.content-wrap h1 { padding: 16px 0; font-weight: 700; font-size: 22px; }
+.btn-primary     { display: inline-block; background: #4f46e5; color: #fff !important; padding: 12px 20px; border-radius: 8px; }
 ```
-
-Reference the Tailwind config from inside your CSS entry (`@config "../../tailwind-mail.config.cjs";`)
-rather than passing a `-c`/`--config` flag — v4's CLI has no such flag. Make sure the build runs in
-the part of your deploy that still blocks going live, so a failed build aborts the deploy instead of
-shipping a release without the asset.
 
 ## Events
 
