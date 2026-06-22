@@ -1,5 +1,10 @@
 # Laravel Newsletter
 
+[![Packagist Version](https://img.shields.io/packagist/v/a2zwebltd/laravel-newsletter.svg)](https://packagist.org/packages/a2zwebltd/laravel-newsletter)
+[![Downloads](https://img.shields.io/packagist/dt/a2zwebltd/laravel-newsletter.svg)](https://packagist.org/packages/a2zwebltd/laravel-newsletter)
+![PHP](https://img.shields.io/badge/PHP-%5E8.2-blue)
+![Laravel](https://img.shields.io/badge/Laravel-12%20%7C%2013-blue)
+
 A portable Laravel newsletter / broadcast-mailing engine. Admin-authored mailings are delivered to your registered users **and** anonymous subscribers through an approval → schedule → send workflow, with per-recipient delivery tracking, a double opt-in subscribe / verify / unsubscribe flow, queued sending with rate limiting, customizable mail templates, and ready-made Nova admin resources.
 
 Designed to drop into any Laravel app with minimal wiring while staying fully customisable — the host application keeps control of its user model, audience rules, branding and notifications.
