@@ -20,7 +20,7 @@ class UniqueRecipientsPerMonth extends Trend
     {
         $query = MailingRecipient::query()->whereNotNull('sent_at');
 
-        $timezone = Nova::resolveUserTimezone($request) ?? $this->getDefaultTimezone($request);
+        $timezone = Nova::resolveUserTimezone($request) ?? config('app.timezone');
 
         $dateColumn = 'sent_at';
 
