@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace A2ZWeb\Newsletter\Nova;
 
 use A2ZWeb\Newsletter\Models\MailingRecipient as MailingRecipientModel;
+use A2ZWeb\Newsletter\Nova\Filters\RecipientStatusFilter;
+use Laravel\Nova\Fields\Badge;
 use Laravel\Nova\Fields\BelongsTo;
 use Laravel\Nova\Fields\DateTime;
 use Laravel\Nova\Fields\Field;
@@ -44,6 +46,30 @@ class MailingRecipient extends Resource
                 ->filterable()
                 ->rules('required'),
 
+            Badge::make(__('Status'), fn (): string => match (true) {
+                $this->sent_at !== null => 'sent',
+                $this->failed_at !== null => 'failed',
+                default => 'pending',
+            })->map([
+                'pending' => 'warning',
+                'sent' => 'success',
+                'failed' => 'danger',
+            ])->labels([
+                'pending' => __('Pending'),
+                'sent' => __('Sent'),
+                'failed' => __('Failed'),
+            ]),
+
+            Text::make(__('Recipient'), fn (): string => (string) ($this->user?->email ?? $this->subscriber?->email ?? '—'))
+                ->onlyOnIndex(),
+
+            Text::make(__('Recipient'), fn (): string => (string) ($this->user?->email ?? $this->subscriber?->email ?? '—'))
+                ->onlyOnDetail()
+                ->copyable(),
+
+            Text::make(__('Recipient Name'), fn (): string => (string) ($this->user?->name ?? $this->subscriber?->name ?? '—'))
+                ->exceptOnForms(),
+
             DateTime::make(__('Sent At'), 'sent_at')
                 ->sortable()
                 ->hideWhenCreating()
@@ -75,6 +101,16 @@ class MailingRecipient extends Resource
                 ->filterable()
                 ->nullable(),
         ]));
+    }
+
+    /**
+     * @return array<int, RecipientStatusFilter>
+     */
+    public function filters(NovaRequest $request): array
+    {
+        return [
+            new RecipientStatusFilter,
+        ];
     }
 
     /**

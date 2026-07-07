@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace A2ZWeb\Newsletter\Nova;
 
 use A2ZWeb\Newsletter\Models\MailingSubscriber as MailingSubscriberModel;
+use A2ZWeb\Newsletter\Nova\Filters\SubscriberVerifiedFilter;
 use Illuminate\Http\Request;
-use Laravel\Nova\Fields\Boolean;
+use Laravel\Nova\Fields\Badge;
 use Laravel\Nova\Fields\DateTime;
 use Laravel\Nova\Fields\Email;
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Text;
+use Laravel\Nova\Http\Requests\NovaRequest;
 use Laravel\Nova\Resource;
 
 class MailingSubscriber extends Resource
@@ -43,7 +45,17 @@ class MailingSubscriber extends Resource
                 ->copyable()
                 ->onlyOnDetail(),
 
-            Boolean::make('Verified', fn () => $this->verified_at !== null),
+            Badge::make(__('Verified'), fn (): string => $this->verified_at !== null ? 'verified' : 'unverified')
+                ->map([
+                    'verified' => 'success',
+                    'unverified' => 'warning',
+                ])->labels([
+                    'verified' => __('Verified'),
+                    'unverified' => __('Pending'),
+                ]),
+
+            Text::make(__('Mailings Received'), fn (): int => $this->mailingRecipients()->whereNotNull('sent_at')->count())
+                ->exceptOnForms(),
 
             DateTime::make('Verified At')
                 ->sortable()
@@ -59,6 +71,16 @@ class MailingSubscriber extends Resource
             DateTime::make(__('Updated At'))
                 ->sortable()
                 ->onlyOnDetail(),
+        ];
+    }
+
+    /**
+     * @return array<int, SubscriberVerifiedFilter>
+     */
+    public function filters(NovaRequest $request): array
+    {
+        return [
+            new SubscriberVerifiedFilter,
         ];
     }
 }

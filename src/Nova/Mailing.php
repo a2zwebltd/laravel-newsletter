@@ -6,9 +6,12 @@ namespace A2ZWeb\Newsletter\Nova;
 
 use A2ZWeb\Newsletter\Models\Mailing as MailingModel;
 use A2ZWeb\Newsletter\Nova\Actions\ApproveMailing;
+use A2ZWeb\Newsletter\Nova\Actions\DuplicateMailing;
+use A2ZWeb\Newsletter\Nova\Actions\ResendFailedRecipients;
 use A2ZWeb\Newsletter\Nova\Actions\ScheduleMailing;
 use A2ZWeb\Newsletter\Nova\Actions\SendMailing;
 use A2ZWeb\Newsletter\Nova\Actions\SendTestMailing;
+use A2ZWeb\Newsletter\Nova\Filters\MailingStatusFilter;
 use A2ZWeb\Newsletter\Nova\Metrics\EmailsSentPerMonth;
 use A2ZWeb\Newsletter\Nova\Metrics\MailingsSentPerMonth;
 use A2ZWeb\Newsletter\Nova\Metrics\PotentialNewsletterRecipients;
@@ -17,6 +20,7 @@ use A2ZWeb\Newsletter\Nova\Metrics\UniqueRecipientsPerMonth;
 use Datomatic\NovaMarkdownTui\MarkdownTui;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
+use Laravel\Nova\Fields\Badge;
 use Laravel\Nova\Fields\BelongsTo;
 use Laravel\Nova\Fields\DateTime;
 use Laravel\Nova\Fields\HasMany;
@@ -46,6 +50,8 @@ class Mailing extends Resource
         'slug',
         'content',
         'content_extra',
+        'cta_content',
+        'reply_to',
     ];
 
     public static function group(): string
@@ -61,6 +67,23 @@ class Mailing extends Resource
             Text::make(__('Title'), 'title')
                 ->sortable()
                 ->rules('required', 'max:255'),
+
+            Badge::make(__('Status'), fn (): string => match (true) {
+                $this->sent_at !== null => 'sent',
+                $this->scheduled_at !== null => 'scheduled',
+                $this->approved_at !== null => 'approved',
+                default => 'draft',
+            })->map([
+                'draft' => 'info',
+                'approved' => 'warning',
+                'scheduled' => 'warning',
+                'sent' => 'success',
+            ])->labels([
+                'draft' => __('Draft'),
+                'approved' => __('Approved'),
+                'scheduled' => __('Scheduled'),
+                'sent' => __('Sent'),
+            ])->hideWhenCreating()->hideWhenUpdating(),
 
             Text::make(__('📨'), fn () => $this->mailingRecipients()->count())
                 ->hideWhenUpdating()
@@ -179,6 +202,16 @@ class Mailing extends Resource
             ->hideFromIndex();
     }
 
+    /**
+     * @return array<int, MailingStatusFilter>
+     */
+    public function filters(NovaRequest $request): array
+    {
+        return [
+            new MailingStatusFilter,
+        ];
+    }
+
     public function actions(NovaRequest $request): array
     {
         return [
@@ -186,6 +219,8 @@ class Mailing extends Resource
             (new SendMailing)->enabled($this->isApproved() && ! $this->isSent() && ! $this->isScheduled()),
             (new ScheduleMailing)->enabled($this->isApproved() && ! $this->isSent()),
             (new SendTestMailing)->enabled(true),
+            (new ResendFailedRecipients)->enabled($this->isSent()),
+            (new DuplicateMailing)->enabled(true),
         ];
     }
 
