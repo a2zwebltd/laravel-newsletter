@@ -7,6 +7,7 @@ namespace A2ZWeb\Newsletter\Models;
 use A2ZWeb\Newsletter\Concerns\HasUuid;
 use A2ZWeb\Newsletter\Database\Factories\MailingFactory;
 use A2ZWeb\Newsletter\Events\MailingSaved;
+use Carbon\CarbonInterface;
 use Cviebrock\EloquentSluggable\Sluggable;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -147,22 +148,22 @@ class Mailing extends Model
         return $this->slug;
     }
 
-    public function getApprovedAt(): ?Carbon
+    public function getApprovedAt(): ?CarbonInterface
     {
         return $this->approved_at;
     }
 
     public function isApproved(): bool
     {
-        return $this->approved_at instanceof Carbon;
+        return $this->approved_at instanceof CarbonInterface;
     }
 
-    public function getCreatedAt(): ?Carbon
+    public function getCreatedAt(): ?CarbonInterface
     {
         return $this->created_at;
     }
 
-    public function getUpdatedAt(): ?Carbon
+    public function getUpdatedAt(): ?CarbonInterface
     {
         return $this->updated_at;
     }

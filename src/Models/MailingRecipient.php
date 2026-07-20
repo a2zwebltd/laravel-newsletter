@@ -6,6 +6,7 @@ namespace A2ZWeb\Newsletter\Models;
 
 use A2ZWeb\Newsletter\Concerns\HasUuid;
 use A2ZWeb\Newsletter\Database\Factories\MailingRecipientFactory;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -101,12 +102,12 @@ class MailingRecipient extends Model
         return $this->uuid;
     }
 
-    public function getSentAt(): ?Carbon
+    public function getSentAt(): ?CarbonInterface
     {
         return $this->sent_at;
     }
 
-    public function setSentAt(?Carbon $sent_at): self
+    public function setSentAt(?CarbonInterface $sent_at): self
     {
         $this->sent_at = $sent_at;
 
@@ -123,17 +124,17 @@ class MailingRecipient extends Model
         return $this->user_id;
     }
 
-    public function getCreatedAt(): ?Carbon
+    public function getCreatedAt(): ?CarbonInterface
     {
         return $this->created_at;
     }
 
-    public function getUpdatedAt(): ?Carbon
+    public function getUpdatedAt(): ?CarbonInterface
     {
         return $this->updated_at;
     }
 
-    public function getFailedAt(): ?Carbon
+    public function getFailedAt(): ?CarbonInterface
     {
         return $this->failed_at;
     }

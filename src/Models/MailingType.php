@@ -6,6 +6,7 @@ namespace A2ZWeb\Newsletter\Models;
 
 use A2ZWeb\Newsletter\Concerns\HasUuid;
 use A2ZWeb\Newsletter\Database\Factories\MailingTypeFactory;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -85,12 +86,12 @@ class MailingType extends Model
         return $this;
     }
 
-    public function getCreatedAt(): ?Carbon
+    public function getCreatedAt(): ?CarbonInterface
     {
         return $this->created_at;
     }
 
-    public function getUpdatedAt(): ?Carbon
+    public function getUpdatedAt(): ?CarbonInterface
     {
         return $this->updated_at;
     }
