@@ -6,6 +6,7 @@ namespace A2ZWeb\Newsletter\Models;
 
 use A2ZWeb\Newsletter\Contracts\CanReceiveMailing;
 use A2ZWeb\Newsletter\Database\Factories\MailingSubscriberFactory;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -96,17 +97,17 @@ class MailingSubscriber extends Model implements CanReceiveMailing
         return $this->token;
     }
 
-    public function getVerifiedAt(): ?Carbon
+    public function getVerifiedAt(): ?CarbonInterface
     {
         return $this->verified_at;
     }
 
-    public function getCreatedAt(): ?Carbon
+    public function getCreatedAt(): ?CarbonInterface
     {
         return $this->created_at;
     }
 
-    public function getUpdatedAt(): ?Carbon
+    public function getUpdatedAt(): ?CarbonInterface
     {
         return $this->updated_at;
     }
