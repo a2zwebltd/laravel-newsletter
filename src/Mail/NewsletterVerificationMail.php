@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace A2ZWeb\Newsletter\Mail;
 
+use A2ZWeb\Newsletter\Support\NewsletterQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
@@ -21,6 +22,8 @@ class NewsletterVerificationMail extends Mailable
     {
         $this->token = $token;
         $this->verificationUrl = route('newsletter.verify', ['token' => $token]);
+
+        NewsletterQueue::applyTo($this);
     }
 
     public function build(): self

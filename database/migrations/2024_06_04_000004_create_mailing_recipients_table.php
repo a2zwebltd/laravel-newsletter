@@ -19,6 +19,7 @@ return new class extends Migration
             $table->efficientUuid('uuid')->nullable()->unique();
             $table->timestamp('sent_at')->nullable();
             $table->timestamp('failed_at')->nullable();
+            $table->text('failure_reason')->nullable();
             $table->foreignId('mailing_id')->constrained('mailings')->cascadeOnDelete();
             $table->unsignedBigInteger('user_id')->nullable()->index();
             $table->foreignId('subscriber_id')->nullable()->constrained('mailing_subscribers')->cascadeOnDelete();

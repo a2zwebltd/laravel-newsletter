@@ -78,9 +78,113 @@ return [
         'enabled' => true,
         'archive_enabled' => true,
         'middleware' => ['web'],
-        'subscribe_middleware' => [],
+        'subscribe_middleware' => ['throttle:10,1'],
         'captcha_field' => 'g-recaptcha-response',
         'captcha_rule' => env('NEWSLETTER_CAPTCHA_RULE'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validation
+    |--------------------------------------------------------------------------
+    |
+    | Validation rules applied to the e-mail address posted to the subscribe
+    | endpoint. The default also checks that the domain has MX/A records; drop
+    | the `dns` part in environments without outbound DNS (tests, CI).
+    |
+    */
+
+    'validation' => [
+        'email' => env('NEWSLETTER_EMAIL_RULES', 'required|email:rfc,dns|max:255'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Responses
+    |--------------------------------------------------------------------------
+    |
+    | The subscribe endpoint answers with the same message whether the address
+    | is new, already subscribed, unsubscribed before or belongs to a registered
+    | user, so the form cannot be used to enumerate addresses.
+    |
+    */
+
+    'responses' => [
+        'subscribed' => 'Almost there. Open the e-mail we just sent and confirm the address, so we know it is you.',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Subscribe
+    |--------------------------------------------------------------------------
+    |
+    | registered_users: what happens when the posted address belongs to a
+    |   registered user.
+    |   'callback'   hand the user to `callbacks.subscribe_existing_user` and
+    |                never create a subscriber row (the audience reaches them
+    |                through `audience.users_query`).
+    |   'subscriber' treat the address like any other: create / refresh a
+    |                MailingSubscriber row and send the verification mail. Use
+    |                this when your users are not mailed as users (an empty
+    |                `users_query`), otherwise an account holder who types
+    |                their address into the footer never receives anything.
+    |
+    */
+
+    'subscribe' => [
+        'registered_users' => env('NEWSLETTER_REGISTERED_USERS', 'callback'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Unsubscribe
+    |--------------------------------------------------------------------------
+    |
+    | mode: 'mark' stamps `unsubscribed_at` on the subscriber and keeps the row
+    |   (the default since 1.2; the address is excluded from every audience and
+    |   subscribing again clears the stamp). 'delete' removes the row as 1.1 did.
+    |
+    */
+
+    'unsubscribe' => [
+        'mode' => env('NEWSLETTER_UNSUBSCRIBE_MODE', 'mark'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Views
+    |--------------------------------------------------------------------------
+    |
+    | verified: a view name rendered (with `$subscriber`) after a successful
+    |   verification instead of redirecting to `redirects.after_verify`.
+    | unsubscribed: the view rendered for the unsubscribe confirmation page
+    |   (receives `$uuid` and `$unsubscribed`); null keeps the package view.
+    |
+    */
+
+    'views' => [
+        'verified' => env('NEWSLETTER_VERIFIED_VIEW'),
+        'unsubscribed' => env('NEWSLETTER_UNSUBSCRIBED_VIEW'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Queue
+    |--------------------------------------------------------------------------
+    |
+    | connection / name: queue connection and queue name used by SendMailingJob,
+    |   the queued Nova actions and the package mailables when queued. Null
+    |   keeps the application defaults.
+    | tries / backoff: attempts and seconds between attempts for SendMailingJob.
+    |   Set tries to null to keep retrying for 24 hours as 1.1 did.
+    |
+    */
+
+    'queue' => [
+        'connection' => env('NEWSLETTER_QUEUE_CONNECTION'),
+        'name' => env('NEWSLETTER_QUEUE'),
+        'tries' => env('NEWSLETTER_QUEUE_TRIES', 3),
+        'backoff' => (int) env('NEWSLETTER_QUEUE_BACKOFF', 120),
     ],
 
     /*
@@ -193,6 +297,8 @@ return [
 
     'nova' => [
         'register_resources' => true,
+        // Set to false to drop the metric cards from the Mailing resource.
+        'register_metrics' => true,
         'group' => 'Mailings',
         // Nova resource class used for User BelongsTo fields, when Nova is present.
         'user_resource' => 'App\\Nova\\User',

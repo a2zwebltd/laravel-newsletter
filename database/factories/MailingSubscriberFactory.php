@@ -29,4 +29,9 @@ class MailingSubscriberFactory extends Factory
     {
         return $this->state(['verified_at' => null]);
     }
+
+    public function unsubscribed(): static
+    {
+        return $this->state(['unsubscribed_at' => now()]);
+    }
 }

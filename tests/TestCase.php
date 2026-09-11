@@ -35,6 +35,11 @@ abstract class TestCase extends Orchestra
         $app['config']->set('auth.providers.users.model', User::class);
         $app['config']->set('newsletter.user_model', User::class);
 
+        // No outbound DNS in the test suite.
+        $app['config']->set('newsletter.validation.email', 'required|email|max:255');
+
+        $app['view']->addNamespace('host', __DIR__.'/views');
+
         // Host wiring used by a couple of tests.
         $app['config']->set('newsletter.callbacks.subscribe_existing_user', function (User $user): void {
             $user->update(['marketing' => true]);
@@ -54,5 +59,6 @@ abstract class TestCase extends Orchestra
     {
         $this->loadMigrationsFrom(__DIR__.'/database/migrations');
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+        $this->loadMigrationsFrom(__DIR__.'/../database/settings');
     }
 }

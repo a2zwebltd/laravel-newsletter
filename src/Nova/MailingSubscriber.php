@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace A2ZWeb\Newsletter\Nova;
 
 use A2ZWeb\Newsletter\Models\MailingSubscriber as MailingSubscriberModel;
+use A2ZWeb\Newsletter\Nova\Filters\SubscriberUnsubscribedFilter;
 use A2ZWeb\Newsletter\Nova\Filters\SubscriberVerifiedFilter;
 use Illuminate\Http\Request;
 use Laravel\Nova\Fields\Badge;
+use Laravel\Nova\Fields\Boolean;
 use Laravel\Nova\Fields\DateTime;
 use Laravel\Nova\Fields\Email;
 use Laravel\Nova\Fields\ID;
@@ -54,10 +56,24 @@ class MailingSubscriber extends Resource
                     'unverified' => __('Pending'),
                 ]),
 
+            Boolean::make(__('Unsubscribed'), fn (): bool => $this->unsubscribed_at !== null)
+                ->exceptOnForms(),
+
             Text::make(__('Mailings Received'), fn (): int => $this->mailingRecipients()->whereNotNull('sent_at')->count())
                 ->exceptOnForms(),
 
+            Text::make(__('Source'), 'source')
+                ->sortable()
+                ->hideFromIndex()
+                ->nullable()
+                ->rules('nullable', 'max:64'),
+
             DateTime::make('Verified At')
+                ->sortable()
+                ->hideFromIndex()
+                ->nullable(),
+
+            DateTime::make(__('Unsubscribed At'), 'unsubscribed_at')
                 ->sortable()
                 ->hideFromIndex()
                 ->nullable(),
@@ -75,12 +91,13 @@ class MailingSubscriber extends Resource
     }
 
     /**
-     * @return array<int, SubscriberVerifiedFilter>
+     * @return array<int, SubscriberVerifiedFilter|SubscriberUnsubscribedFilter>
      */
     public function filters(NovaRequest $request): array
     {
         return [
             new SubscriberVerifiedFilter,
+            new SubscriberUnsubscribedFilter,
         ];
     }
 }

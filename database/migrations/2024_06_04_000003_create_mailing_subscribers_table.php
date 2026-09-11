@@ -20,6 +20,8 @@ return new class extends Migration
             $table->string('name')->nullable();
             $table->string('token')->unique();
             $table->timestamp('verified_at')->nullable();
+            $table->timestamp('unsubscribed_at')->nullable();
+            $table->string('source', 64)->nullable();
             $table->timestamps();
         });
     }

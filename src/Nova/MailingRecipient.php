@@ -12,6 +12,7 @@ use Laravel\Nova\Fields\DateTime;
 use Laravel\Nova\Fields\Field;
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Text;
+use Laravel\Nova\Fields\Textarea;
 use Laravel\Nova\Http\Requests\NovaRequest;
 use Laravel\Nova\Resource;
 
@@ -81,6 +82,10 @@ class MailingRecipient extends Resource
                 ->hideWhenUpdating()
                 ->sortable()
                 ->nullable(),
+
+            Textarea::make(__('Failure Reason'), 'failure_reason')
+                ->onlyOnDetail()
+                ->alwaysShow(),
 
             DateTime::make(__('Created At'))
                 ->sortable()

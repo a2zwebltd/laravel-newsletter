@@ -9,7 +9,7 @@ use A2ZWeb\Newsletter\Events\MailingDelivered;
 use A2ZWeb\Newsletter\Mail\SendMailingEmail;
 use A2ZWeb\Newsletter\Models\Mailing;
 use A2ZWeb\Newsletter\Models\MailingRecipient;
-use Carbon\Carbon;
+use A2ZWeb\Newsletter\Support\NewsletterQueue;
 use DateTime;
 use Exception;
 use Illuminate\Bus\Queueable;
@@ -29,10 +29,26 @@ class SendMailingJob implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
+    /**
+     * Attempts before the job is marked failed (`newsletter.queue.tries`).
+     * Null keeps retrying for 24 hours, see retryUntil().
+     */
+    public ?int $tries;
+
+    /**
+     * Seconds between attempts (`newsletter.queue.backoff`).
+     */
+    public int $backoff;
+
     public function __construct(
         public readonly Mailing $mailing,
         public readonly MailingRecipient $recipient,
-    ) {}
+    ) {
+        $this->tries = NewsletterQueue::tries();
+        $this->backoff = NewsletterQueue::backoff();
+
+        NewsletterQueue::applyTo($this);
+    }
 
     public function uniqueId(): string
     {
@@ -44,8 +60,16 @@ class SendMailingJob implements ShouldQueue
         return [(new RateLimited('mailings'))->dontRelease()];
     }
 
-    public function retryUntil(): DateTime
+    /**
+     * Laravel gives retryUntil() precedence over $tries, so the 24-hour window
+     * only applies when `newsletter.queue.tries` is null.
+     */
+    public function retryUntil(): ?DateTime
     {
+        if ($this->tries !== null) {
+            return null;
+        }
+
         return now()->addMinutes(60 * 24);
     }
 
@@ -61,7 +85,9 @@ class SendMailingJob implements ShouldQueue
                 $recipientModel = $this->resolveRecipientModel();
 
                 if (! $recipientModel instanceof CanReceiveMailing) {
-                    $this->fail(__METHOD__.': Neither a user nor a subscriber was resolved for this recipient.');
+                    $reason = 'Neither a user nor a subscriber was resolved for this recipient.';
+                    $this->recipient->markAsFailed($reason);
+                    $this->fail(__METHOD__.': '.$reason);
 
                     return;
                 }
@@ -91,8 +117,7 @@ class SendMailingJob implements ShouldQueue
     {
         Log::error('SendMailingJob failed for recipient: '.$this->recipient->getId().'. Error: '.$exception->getMessage());
 
-        $this->recipient->failed_at = Carbon::now();
-        $this->recipient->saveQuietly();
+        $this->recipient->markAsFailed($exception->getMessage());
     }
 
     protected function resolveRecipientModel(): ?CanReceiveMailing

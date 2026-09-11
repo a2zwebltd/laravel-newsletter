@@ -6,7 +6,9 @@ namespace A2ZWeb\Newsletter\Models;
 
 use A2ZWeb\Newsletter\Concerns\HasUuid;
 use A2ZWeb\Newsletter\Database\Factories\MailingFactory;
+use A2ZWeb\Newsletter\Events\MailingApproved;
 use A2ZWeb\Newsletter\Events\MailingSaved;
+use A2ZWeb\Newsletter\Support\MailingRecipientBuilder;
 use Carbon\CarbonInterface;
 use Cviebrock\EloquentSluggable\Sluggable;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -218,9 +220,21 @@ class Mailing extends Model
         return $this->scheduled_at instanceof Carbon;
     }
 
+    /**
+     * Approve the mailing: stamp `approved_at`, enrol the current audience as
+     * recipients and fire MailingApproved. A no-op when already approved.
+     */
     public function approve(): void
     {
+        if ($this->isApproved()) {
+            return;
+        }
+
         $this->approved_at = now();
         $this->saveQuietly();
+
+        app(MailingRecipientBuilder::class)->build($this);
+
+        event(new MailingApproved($this));
     }
 }

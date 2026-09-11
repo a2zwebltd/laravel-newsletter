@@ -6,6 +6,7 @@ namespace A2ZWeb\Newsletter\Nova\Actions;
 
 use A2ZWeb\Newsletter\Jobs\SendMailingJob;
 use A2ZWeb\Newsletter\Models\MailingRecipient;
+use A2ZWeb\Newsletter\Support\NewsletterQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Http\Request;
@@ -19,6 +20,11 @@ class SendMailing extends Action implements ShouldQueue
     use Queueable;
 
     public $name = 'Send Mailing';
+
+    public function __construct()
+    {
+        NewsletterQueue::applyTo($this);
+    }
 
     public function handle(ActionFields $fields, Collection $models): ActionResponse
     {

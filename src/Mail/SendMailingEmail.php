@@ -8,6 +8,7 @@ use A2ZWeb\Newsletter\Contracts\CanReceiveMailing;
 use A2ZWeb\Newsletter\Models\Mailing;
 use A2ZWeb\Newsletter\Models\MailingRecipient;
 use A2ZWeb\Newsletter\Settings\MailingSettings;
+use A2ZWeb\Newsletter\Support\NewsletterQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Markdown;
@@ -23,7 +24,9 @@ class SendMailingEmail extends Mailable
     public function __construct(
         public Mailing $mailing,
         public ?MailingRecipient $recipient = null,
-    ) {}
+    ) {
+        NewsletterQueue::applyTo($this);
+    }
 
     public function build(): static
     {
@@ -63,20 +66,50 @@ class SendMailingEmail extends Mailable
         }
 
         $settings = app(MailingSettings::class);
+        $fromAddress = (string) ($settings->from_email_address ?: config('mail.from.address'));
 
         return $this
-            ->from(
-                $settings->from_email_address ?: config('mail.from.address'),
-                $settings->from_name ?: config('mail.from.name'),
-            )
+            ->from($fromAddress, $settings->from_name ?: config('mail.from.name'))
             ->subject($subject)
-            ->withSymfonyMessage(function ($message) use ($user_uuid): void {
-                if (! empty($user_uuid) && Route::has('unsubscribe.show')) {
-                    $unsubscribeGetUrl = route('unsubscribe.show', ['uuid' => $user_uuid]);
-                    $message->getHeaders()->addTextHeader('List-Unsubscribe', "<$unsubscribeGetUrl>");
-                }
+            ->withSymfonyMessage(function ($message) use ($user_uuid, $fromAddress): void {
+                $this->addListUnsubscribeHeaders($message, $user_uuid, $fromAddress);
             })
             ->html($html);
+    }
+
+    /**
+     * RFC 2369 / RFC 8058 headers: the https URI answers a one-click POST
+     * (`unsubscribe.one-click`, no CSRF) and redirects a plain GET to the
+     * confirmation page; the mailto is the fallback for older clients.
+     */
+    protected function addListUnsubscribeHeaders(object $message, mixed $userUuid, string $fromAddress): void
+    {
+        if (empty($userUuid)) {
+            return;
+        }
+
+        $uris = [];
+
+        if (Route::has('unsubscribe.one-click')) {
+            $uris[] = '<'.route('unsubscribe.one-click', ['uuid' => $userUuid]).'>';
+        } elseif (Route::has('unsubscribe.show')) {
+            $uris[] = '<'.route('unsubscribe.show', ['uuid' => $userUuid]).'>';
+        }
+
+        if ($fromAddress !== '') {
+            $uris[] = '<mailto:'.$fromAddress.'?subject=unsubscribe>';
+        }
+
+        if ($uris === []) {
+            return;
+        }
+
+        $headers = $message->getHeaders();
+        $headers->addTextHeader('List-Unsubscribe', implode(', ', $uris));
+
+        if (Route::has('unsubscribe.one-click')) {
+            $headers->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
+        }
     }
 
     /**

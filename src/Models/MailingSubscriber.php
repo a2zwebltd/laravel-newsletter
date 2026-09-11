@@ -7,6 +7,8 @@ namespace A2ZWeb\Newsletter\Models;
 use A2ZWeb\Newsletter\Contracts\CanReceiveMailing;
 use A2ZWeb\Newsletter\Database\Factories\MailingSubscriberFactory;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -20,6 +22,8 @@ use Illuminate\Support\Str;
  * @property string|null $name
  * @property string $token
  * @property Carbon|null $verified_at
+ * @property Carbon|null $unsubscribed_at
+ * @property string|null $source
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -27,12 +31,13 @@ class MailingSubscriber extends Model implements CanReceiveMailing
 {
     use HasFactory;
 
-    protected $fillable = ['email', 'token', 'name', 'verified_at'];
+    protected $fillable = ['email', 'token', 'name', 'verified_at', 'unsubscribed_at', 'source'];
 
     protected function casts(): array
     {
         return [
             'verified_at' => 'datetime',
+            'unsubscribed_at' => 'datetime',
             'token' => 'string',
         ];
     }
@@ -59,6 +64,43 @@ class MailingSubscriber extends Model implements CanReceiveMailing
     public function mailingRecipients(): HasMany
     {
         return $this->hasMany(MailingRecipient::class, 'subscriber_id');
+    }
+
+    /**
+     * Verified subscribers that have not unsubscribed: the mailing audience.
+     */
+    #[Scope]
+    protected function subscribed(Builder $query): Builder
+    {
+        return $query->whereNotNull('verified_at')->whereNull('unsubscribed_at');
+    }
+
+    public function isVerified(): bool
+    {
+        return $this->verified_at !== null;
+    }
+
+    public function isUnsubscribed(): bool
+    {
+        return $this->unsubscribed_at !== null;
+    }
+
+    /**
+     * Stamp `unsubscribed_at`; the row is kept so the address stays known.
+     */
+    public function markAsUnsubscribed(): void
+    {
+        $this->unsubscribed_at = now();
+        $this->save();
+    }
+
+    /**
+     * Clear `unsubscribed_at` after the address subscribes again.
+     */
+    public function markAsSubscribed(): void
+    {
+        $this->unsubscribed_at = null;
+        $this->save();
     }
 
     public function getPersonalizedName(): string
@@ -100,6 +142,16 @@ class MailingSubscriber extends Model implements CanReceiveMailing
     public function getVerifiedAt(): ?CarbonInterface
     {
         return $this->verified_at;
+    }
+
+    public function getUnsubscribedAt(): ?CarbonInterface
+    {
+        return $this->unsubscribed_at;
+    }
+
+    public function getSource(): ?string
+    {
+        return $this->source;
     }
 
     public function getCreatedAt(): ?CarbonInterface

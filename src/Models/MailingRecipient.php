@@ -21,6 +21,7 @@ use Illuminate\Support\Carbon;
  * @property mixed $uuid
  * @property Carbon|null $sent_at
  * @property Carbon|null $failed_at
+ * @property string|null $failure_reason
  * @property int $mailing_id
  * @property int|null $user_id
  * @property int|null $subscriber_id
@@ -44,6 +45,7 @@ class MailingRecipient extends Model
     protected $fillable = [
         'sent_at',
         'failed_at',
+        'failure_reason',
         'mailing_id',
         'user_id',
         'subscriber_id',
@@ -137,6 +139,21 @@ class MailingRecipient extends Model
     public function getFailedAt(): ?CarbonInterface
     {
         return $this->failed_at;
+    }
+
+    public function getFailureReason(): ?string
+    {
+        return $this->failure_reason;
+    }
+
+    /**
+     * Stamp the recipient as failed, keeping a truncated reason for the admin.
+     */
+    public function markAsFailed(?string $reason): void
+    {
+        $this->failed_at = now();
+        $this->failure_reason = $reason !== null ? mb_substr($reason, 0, 500) : null;
+        $this->saveQuietly();
     }
 
     public function getSubscriberId(): ?int

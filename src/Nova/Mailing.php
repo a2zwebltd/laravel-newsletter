@@ -226,6 +226,10 @@ class Mailing extends Resource
 
     public function cards(NovaRequest $request): array
     {
+        if (! config('newsletter.nova.register_metrics', true)) {
+            return [];
+        }
+
         return [
             PotentialNewsletterRecipients::make()
                 ->help(__('Eligible registered users + verified subscribers.'))

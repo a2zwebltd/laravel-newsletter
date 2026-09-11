@@ -9,6 +9,7 @@ use A2ZWeb\Newsletter\Mail\SendMailingEmail;
 use A2ZWeb\Newsletter\Models\MailingRecipient;
 use A2ZWeb\Newsletter\Models\MailingSubscriber;
 use A2ZWeb\Newsletter\Settings\MailingSettings;
+use A2ZWeb\Newsletter\Support\NewsletterQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
@@ -26,6 +27,11 @@ class SendTestMailing extends Action implements ShouldQueue
     use Queueable;
 
     public $name = 'Send Test Mailing';
+
+    public function __construct()
+    {
+        NewsletterQueue::applyTo($this);
+    }
 
     public function handle(ActionFields $fields, Collection $models): Action|ActionResponse
     {

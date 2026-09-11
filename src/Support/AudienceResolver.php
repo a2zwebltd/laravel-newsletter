@@ -48,13 +48,13 @@ class AudienceResolver
     }
 
     /**
-     * Verified anonymous subscribers.
+     * Verified anonymous subscribers that have not unsubscribed.
      *
      * @return Builder<MailingSubscriber>
      */
     public function subscribersQuery(): Builder
     {
-        return MailingSubscriber::query()->whereNotNull('verified_at');
+        return MailingSubscriber::query()->subscribed();
     }
 
     /**
