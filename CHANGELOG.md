@@ -20,6 +20,7 @@ All notable changes to `a2zwebltd/laravel-newsletter` are documented here.
 ### Changed
 - `SendMailingJob` retries 3 times, 120 s apart, by default; `queue.tries => null` restores the 24-hour window.
 - `Mailing::approve()` is a no-op on an already approved mailing.
+- An unsubscribed address that subscribes again has to confirm again (`markAsSubscribed()` clears `verified_at` too); the form cannot re-enrol somebody who opted out.
 - The `mailing_types` migration leaves an existing table untouched instead of seeding into it (a host's own table of another shape no longer breaks `migrate`).
 
 ### Fixed

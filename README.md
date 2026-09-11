@@ -79,7 +79,7 @@ form cannot be used to enumerate addresses. What happens behind the scenes:
 | new | pending subscriber created, verification mail sent |
 | a pending (unverified) subscriber | verification mail sent again |
 | a verified subscriber | nothing (no mail) |
-| an unsubscribed subscriber | `unsubscribed_at` cleared; verification mail only if never verified |
+| an unsubscribed subscriber | `unsubscribed_at` and `verified_at` cleared; verification mail sent (the address confirms again) |
 | a registered user | `subscribe.registered_users`: `callback` (default) hands the user to `callbacks.subscribe_existing_user`, no subscriber row; `subscriber` treats the address exactly like a new one |
 
 The route is throttled (`routes.subscribe_middleware`, `['throttle:10,1']` by

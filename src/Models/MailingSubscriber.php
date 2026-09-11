@@ -95,11 +95,14 @@ class MailingSubscriber extends Model implements CanReceiveMailing
     }
 
     /**
-     * Clear `unsubscribed_at` after the address subscribes again.
+     * Clear `unsubscribed_at` after the address subscribes again. The address
+     * has to confirm again: an opt-out is undone only by the person who owns
+     * the inbox, never by whoever types the address into the form.
      */
     public function markAsSubscribed(): void
     {
         $this->unsubscribed_at = null;
+        $this->verified_at = null;
         $this->save();
     }
 

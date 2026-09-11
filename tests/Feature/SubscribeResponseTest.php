@@ -22,10 +22,11 @@ it('answers 200 with the same message for a new, verified, unverified, unsubscri
             ->assertExactJson(['message' => SUBSCRIBED_MESSAGE]);
     }
 
-    // New and pending addresses get a verification mail; verified, unsubscribed and registered do not.
-    Mail::assertSentCount(2);
+    // New, pending and returning addresses get a verification mail; verified and registered do not.
+    Mail::assertSentCount(3);
     Mail::assertSent(NewsletterVerificationMail::class, fn ($mail) => $mail->hasTo('new@example.com'));
     Mail::assertSent(NewsletterVerificationMail::class, fn ($mail) => $mail->hasTo('pending@example.com'));
+    Mail::assertSent(NewsletterVerificationMail::class, fn ($mail) => $mail->hasTo('gone@example.com'));
 });
 
 it('uses the message configured in responses.subscribed', function () {
@@ -45,9 +46,13 @@ it('clears unsubscribed_at when the address subscribes again', function () {
     $this->postJson(route('newsletter.subscribe'), ['email' => 'back@example.com'])->assertOk();
     $this->postJson(route('newsletter.subscribe'), ['email' => 'pending@example.com'])->assertOk();
 
+    // Coming back is not the same as never having left: both confirm again, so
+    // that nobody can re-enrol an address that opted out.
     expect($verified->fresh()->isUnsubscribed())->toBeFalse()
+        ->and($verified->fresh()->isVerified())->toBeFalse()
         ->and($pending->fresh()->isUnsubscribed())->toBeFalse();
-    Mail::assertSentCount(1);
+    Mail::assertSentCount(2);
+    Mail::assertSent(NewsletterVerificationMail::class, fn ($mail) => $mail->hasTo('back@example.com'));
     Mail::assertSent(NewsletterVerificationMail::class, fn ($mail) => $mail->hasTo('pending@example.com'));
 });
 

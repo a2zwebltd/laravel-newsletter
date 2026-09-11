@@ -30,7 +30,9 @@ class SubscriptionController extends Controller
      *  - registered user: handed to the `subscribe_existing_user` callback
      *    (or treated as a subscriber when `subscribe.registered_users` is
      *    'subscriber');
-     *  - known verified subscriber: `unsubscribed_at` cleared, no mail;
+     *  - known verified subscriber: nothing changes, no mail;
+     *  - known unsubscribed subscriber: `unsubscribed_at` cleared, address has
+     *    to confirm again (verification mail sent);
      *  - known unverified subscriber: verification mail re-sent;
      *  - new address: pending subscriber created, verification mail sent.
      */
