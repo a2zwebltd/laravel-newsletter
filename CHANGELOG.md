@@ -20,6 +20,10 @@ All notable changes to `a2zwebltd/laravel-newsletter` are documented here.
 ### Changed
 - `SendMailingJob` retries 3 times, 120 s apart, by default; `queue.tries => null` restores the 24-hour window.
 - `Mailing::approve()` is a no-op on an already approved mailing.
+- The `mailing_types` migration leaves an existing table untouched instead of seeding into it (a host's own table of another shape no longer breaks `migrate`).
+
+### Fixed
+- `Mailing::isSent()` / `isScheduled()` and the `getSentAt()` / `getScheduledAt()` return types accept `CarbonImmutable` (hosts using `Date::use(CarbonImmutable::class)` saw a sent mailing as unsent).
 
 ### Upgrade
 - Run `php artisan migrate`.

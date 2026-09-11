@@ -200,24 +200,24 @@ class Mailing extends Model
         return $this->extra_html;
     }
 
-    public function getSentAt(): ?Carbon
+    public function getSentAt(): ?CarbonInterface
     {
         return $this->sent_at;
     }
 
-    public function getScheduledAt(): ?Carbon
+    public function getScheduledAt(): ?CarbonInterface
     {
         return $this->scheduled_at;
     }
 
     public function isSent(): bool
     {
-        return $this->sent_at instanceof Carbon;
+        return $this->sent_at instanceof CarbonInterface;
     }
 
     public function isScheduled(): bool
     {
-        return $this->scheduled_at instanceof Carbon;
+        return $this->scheduled_at instanceof CarbonInterface;
     }
 
     /**
