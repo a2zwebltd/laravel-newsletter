@@ -10,9 +10,11 @@ use A2ZWeb\Newsletter\Models\MailingRecipient;
 use A2ZWeb\Newsletter\Settings\MailingSettings;
 use A2ZWeb\Newsletter\Support\NewsletterQueue;
 use Illuminate\Bus\Queueable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Markdown;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use TijsVerkoyen\CssToInlineStyles\CssToInlineStyles;
 
@@ -37,6 +39,18 @@ class SendMailingEmail extends Mailable
         // template guarding the unsubscribe link with isset($user_uuid) would otherwise pass on
         // an empty string and call route('unsubscribe.show', ['uuid' => '']) → missing-parameter.
         $user_uuid = $recipientModel?->getUuid() ?: null;
+
+        if ($recipientModel !== null && $user_uuid === null) {
+            // A resolved recipient without a public id: the template cannot link to the
+            // unsubscribe page and no List-Unsubscribe header is added. Usually a User row
+            // whose `uuid` column is empty.
+            Log::warning(sprintf(
+                'Newsletter: %s #%s (mailing #%s) has no uuid, so the unsubscribe link and the List-Unsubscribe header are left out. Populate its `uuid` column.',
+                $recipientModel::class,
+                $recipientModel instanceof Model ? (string) $recipientModel->getKey() : '?',
+                (string) $this->mailing->getKey(),
+            ));
+        }
 
         $subject = str_replace($nameTag, $personalizedName, $this->mailing->getTitle() ?? '');
         $content = str_replace($nameTag, $personalizedName, $this->mailing->getContent() ?? '');
@@ -86,6 +100,12 @@ class SendMailingEmail extends Mailable
     {
         if (empty($userUuid)) {
             return;
+        }
+
+        if (! Route::has('unsubscribe.one-click') && ! Route::has('unsubscribe.show')) {
+            Log::warning('Newsletter: no `unsubscribe.one-click` or `unsubscribe.show` route is registered, so the '
+                .'List-Unsubscribe header carries only the mailto address. Re-declare the package routes when '
+                .'`newsletter.routes.enabled` is false.');
         }
 
         $uris = [];

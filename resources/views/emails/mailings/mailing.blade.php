@@ -18,7 +18,7 @@
             <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"
                    style="width:600px;max-width:100%;background:#ffffff;border-radius:8px;overflow:hidden;">
 
-                @if(! empty($slug))
+                @if(! empty($slug) && \Illuminate\Support\Facades\Route::has('mailing'))
                     <tr>
                         <td align="right" style="font-size:11px;color:#6b7280;padding:8px 16px;">
                             <a href="{{ route('mailing', ['slug' => $slug]) }}" style="color:#4f46e5;text-decoration:none;">
@@ -64,7 +64,7 @@
                 <tr>
                     <td style="padding:20px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280;">
                         &copy; {{ date('Y') }} {{ config('app.name') }}.
-                        @if(! empty($user_uuid))
+                        @if(! empty($user_uuid) && \Illuminate\Support\Facades\Route::has('unsubscribe.show'))
                             &nbsp;
                             <a href="{{ route('unsubscribe.show', ['uuid' => $user_uuid]) }}" style="color:#4f46e5;text-decoration:none;">
                                 {{ __('Unsubscribe') }}
