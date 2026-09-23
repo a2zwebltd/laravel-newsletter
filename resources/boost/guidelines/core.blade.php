@@ -6,7 +6,7 @@ Broadcast mailings to registered users and double opt-in subscribers: approve, s
 - Hooks in `config/newsletter.php` (`audience.users_query`, `audience.type_scopes.*`, `callbacks.*`) are invokable class-strings, never closures, so `config:cache` works.
 - `users_query` returns the Builder with no `select()` or `orderBy()` (the recipient builder runs `select('id')->chunkById()`). Users and subscribers are not de-duplicated: exclude `MailingSubscriber::query()->subscribed()->select('email')`.
 - The User model needs `ReceivesMailings` + `CanReceiveMailing` and a populated `uuid` column. Without a uuid the mail goes out with no unsubscribe link and no `List-Unsubscribe` header (only a log warning).
-- With `routes.enabled` false, re-declare EVERY package route under the same names, including `unsubscribe.one-click` (GET+POST, without CSRF middleware).
+- With `routes.enabled` false, re-declare EVERY package route under the same names, including `unsubscribe.one-click` (GET+POST, without CSRF middleware; on Laravel 13 exclude `PreventRequestForgery`, since excluding only `ValidateCsrfToken` still returns 419).
 - The package schedules `mailings:send-scheduled` itself; do not schedule it again.
 - A `queue.name` (`NEWSLETTER_QUEUE`) needs a worker or Horizon supervisor listening on it, or nothing is sent.
 - Approve in code with `Mailing::approve()`; it enrols recipients and fires `MailingApproved`.

@@ -201,7 +201,9 @@ The package then registers nothing, but its mails, pages and controllers still c
 ```php
 use A2ZWeb\Newsletter\Http\Controllers\NewsletterController;
 use A2ZWeb\Newsletter\Http\Controllers\SubscriptionController;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 
 Route::middleware('web')->group(function () {
     Route::get('/newsletters', [NewsletterController::class, 'index'])->name('newsletters');
@@ -215,7 +217,12 @@ Route::middleware('web')->group(function () {
     Route::get('/unsubscribe/{uuid}', [SubscriptionController::class, 'showUnsubscribe'])->name('unsubscribe.show');
     Route::post('/unsubscribe/{uuid}', [SubscriptionController::class, 'confirmUnsubscribe'])->name('unsubscribe.confirm');
     Route::match(['GET', 'POST'], '/unsubscribe/{uuid}/one-click', [SubscriptionController::class, 'oneClickUnsubscribe'])
-        ->withoutMiddleware(ValidateCsrfToken::class) // mail clients POST without a token (RFC 8058)
+        // Mail clients POST without a token (RFC 8058). Laravel 13's web group runs
+        // PreventRequestForgery, Laravel 11/12 run ValidateCsrfToken; exclude whichever exist.
+        ->withoutMiddleware(array_values(array_filter(
+            [PreventRequestForgery::class, VerifyCsrfToken::class, ValidateCsrfToken::class],
+            fn (string $middleware): bool => class_exists($middleware),
+        )))
         ->name('unsubscribe.one-click');
 });
 ```

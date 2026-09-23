@@ -104,8 +104,10 @@ List-Unsubscribe-Post: List-Unsubscribe=One-Click
 
 Mail clients POST `List-Unsubscribe=One-Click` to the https URI without a CSRF
 token, so that URI is a dedicated route, `unsubscribe.one-click`, registered
-with `withoutMiddleware(ValidateCsrfToken::class)` (the host's own subclass is
-excluded too). It only honours a POST whose body carries
+without the framework CSRF middleware: `PreventRequestForgery` on Laravel 13,
+`ValidateCsrfToken` / `VerifyCsrfToken` on Laravel 11 and 12 (whichever exist).
+`withoutMiddleware()` also drops subclasses, so the host's own CSRF middleware
+is excluded too. It only honours a POST whose body carries
 `List-Unsubscribe=One-Click` (204, no body; anything else is 400) and redirects
 a plain GET to the confirmation page. The browser flow is untouched:
 `unsubscribe.show` renders the confirmation page and `unsubscribe.confirm`

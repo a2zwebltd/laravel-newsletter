@@ -2,6 +2,11 @@
 
 All notable changes to `a2zwebltd/laravel-newsletter` are documented here.
 
+## 1.3.1 - 2026-09-23
+
+### Fixed
+- One-click unsubscribe (`unsubscribe.one-click`) returned 419 to mail clients on Laravel 13. Its `web` group runs `PreventRequestForgery`, the parent of `ValidateCsrfToken` and `VerifyCsrfToken`, and the route only excluded those two. The route now also excludes `PreventRequestForgery` when it exists; Laravel 11 and 12 are unchanged. Hosts that re-declare the route (`routes.enabled` false) must exclude it too; the skill shows the form.
+
 ## 1.3.0 - 2026-09-23
 
 ### Added
