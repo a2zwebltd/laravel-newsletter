@@ -121,13 +121,13 @@ See `config/newsletter.php`. Highlights:
 | `per_minute` | Send-rate limit (drives the `mailings` limiter) |
 | `email_view_prefix` | View path for mailing bodies — point at your own branded templates |
 | `inline_css_path` | Absolute path to a compiled CSS file inlined into every mailing (`null` = no inlining). See [Email CSS inlining](#email-css-inlining-optional) |
-| `audience.users_query` | Closure scoping eligible registered users |
-| `audience.type_scopes` | Per-mailing-type audience refinements |
-| `callbacks.*` | Hooks for existing-user subscribe / unsubscribe / uuid lookup |
+| `audience.users_query` | Invokable class-string scoping eligible registered users, see [Hooks](#hooks-audience-and-callbacks) |
+| `audience.type_scopes` | Mailing-type `code` → invokable class-string refining the audience |
+| `callbacks.*` | Invokable class-strings for existing-user subscribe / unsubscribe / uuid lookup |
 | `short_url.enabled` | Auto-shorten CTA links when `ashallendesign/short-url` is installed |
 | `nova.group` / `nova.user_resource` | Nova menu group and the User resource used for relations |
 | `nova.register_metrics` | `true` — set to `false` to drop the metric cards from the Mailing resource |
-| `routes.*` | Toggle/route prefix, subscribe middleware (`['throttle:10,1']`), captcha rule |
+| `routes.*` | Toggle the routes (`enabled`, `archive_enabled`), group middleware, subscribe middleware (`['throttle:10,1']`), captcha rule |
 | `validation.email` | Rules for the posted address, `required|email:rfc,dns|max:255` (drop `dns` where there is no outbound DNS) |
 | `responses.subscribed` | The one message the subscribe endpoint answers with |
 | `subscribe.registered_users` | `callback` (default) or `subscriber` — how a registered user's address is handled, see [Subscribe endpoint](#subscribe-endpoint) |
@@ -136,6 +136,65 @@ See `config/newsletter.php`. Highlights:
 | `views.unsubscribed` | View for the unsubscribe confirmation page (`$uuid`, `$unsubscribed`); `null` keeps the package view |
 | `queue.connection` / `queue.name` | Queue connection and name for `SendMailingJob`, the queued Nova actions and the package mailables when queued (`null` = app defaults) |
 | `queue.tries` / `queue.backoff` | Attempts (`3`) and seconds between them (`120`) for `SendMailingJob`; `tries => null` keeps retrying for 24 h as 1.1 did |
+
+## Hooks (audience and callbacks)
+
+Every hook in `config/newsletter.php` takes the **class-string of an invokable
+class**. The package resolves it from the container when it runs, so the config
+file stays closure-free and `php artisan config:cache` keeps working. Do not
+put closures in the config file, and do not set them with `config([...])` at
+runtime either.
+
+```php
+// config/newsletter.php
+'audience' => [
+    'users_query' => \App\Support\Newsletter\NewsletterUsers::class,
+    'type_scopes' => [
+        'product-updates' => \App\Support\Newsletter\ProductUpdateUsers::class,
+    ],
+],
+
+'callbacks' => [
+    'subscribe_existing_user' => \App\Support\Newsletter\EnableMarketingOnSubscribe::class,
+    'unsubscribe_user' => \App\Support\Newsletter\DisableMarketingOnUnsubscribe::class,
+    'find_user_by_uuid' => \App\Support\Newsletter\FindUserByUuid::class,
+],
+```
+
+| Key | `__invoke` signature |
+|-----|----------------------|
+| `audience.users_query` | `__invoke(Builder $query): Builder` |
+| `audience.type_scopes.<code>` | `__invoke(Builder $query): Builder` (applied on top of `users_query`) |
+| `callbacks.subscribe_existing_user` | `__invoke(User $user): void` |
+| `callbacks.unsubscribe_user` | `__invoke(User $user): void` |
+| `callbacks.find_user_by_uuid` | `__invoke(string $uuid): ?User` |
+
+`users_query` must return the builder without `select()` or `orderBy()`: the
+recipient builder calls `select('id')->chunkById()` on it. Users and subscribers
+are enrolled separately and are not de-duplicated, so leave out addresses that
+are already on the subscriber list:
+
+```php
+namespace App\Support\Newsletter;
+
+use A2ZWeb\Newsletter\Models\MailingSubscriber;
+use Illuminate\Database\Eloquent\Builder;
+
+final class NewsletterUsers
+{
+    public function __invoke(Builder $query): Builder
+    {
+        return $query
+            ->whereNotNull('email_verified_at')
+            ->where('marketing', true)
+            ->whereNotIn('email', MailingSubscriber::query()->subscribed()->select('email'));
+    }
+}
+```
+
+The unsubscribe link and the `List-Unsubscribe` header use the recipient's
+`uuid`. A user whose `uuid` column is empty still gets the mailing, without
+either, and the package logs a warning for it.
 
 ## Email CSS inlining (optional)
 
@@ -218,6 +277,14 @@ Schedule::command('mailings:send-scheduled')->everyMinute();
 
 ## Upgrading
 
+### 1.2 → 1.3
+
+- Nothing to change. Closures set with `config()` at runtime still work, but
+  move them to invokable classes (see [Hooks](#hooks-audience-and-callbacks))
+  so `config:cache` is safe.
+- Watch the log for `has no uuid` warnings: those users get mailings without an
+  unsubscribe link. Backfill their `uuid` column.
+
 ### 1.1 → 1.2
 
 - Run `php artisan migrate`: adds `mailing_subscribers.unsubscribed_at`,
@@ -235,6 +302,21 @@ Schedule::command('mailings:send-scheduled')->everyMinute();
   `queue.tries => null` to keep the old window.
 - `Mailing::approve()` now also builds recipients and fires `MailingApproved`
   (and is a no-op on an already approved mailing).
+
+## AI agents (Laravel Boost)
+
+The package ships [Laravel Boost](https://github.com/laravel/boost) resources:
+a short guideline (`resources/boost/guidelines/core.blade.php`) and the
+`newsletter-development` skill (`resources/boost/skills/newsletter-development`).
+Boost 2 or newer is required. In the host app:
+
+```bash
+composer require laravel/boost --dev
+php artisan boost:install            # first time
+php artisan boost:update --discover  # already using Boost
+```
+
+Select `a2zwebltd/laravel-newsletter` when Boost asks which packages to load.
 
 ## Testing
 

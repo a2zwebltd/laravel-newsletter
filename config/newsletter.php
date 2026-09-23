@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use Illuminate\Database\Eloquent\Builder;
-
 return [
 
     /*
@@ -209,26 +207,38 @@ return [
     | Determines which registered users are enrolled as recipients when a mailing
     | is approved, and how the "potential recipients" metric is computed.
     |
-    | `users_query` receives a fresh query builder for the user model and should
-    | constrain it to eligible recipients. The default targets users that have
-    | verified their email. Provide a closure to add your own opt-in scope, e.g.
-    | ->where('marketing', true).
+    | Every hook below is the class-string of an invokable class, resolved from
+    | the container when it runs. Keep it a string: a closure in this file
+    | breaks `php artisan config:cache`.
     |
-    | `type_scopes` maps a MailingType `code` to an additional closure applied on
-    | top of `users_query`, so different mailing types can target different
-    | audiences (e.g. "verified_consent" only marketing opt-ins).
+    | users_query: receives a fresh query builder for the user model and returns
+    |   it constrained to eligible recipients. Null targets users with a
+    |   verified email. Do not add select() or orderBy(): the recipient builder
+    |   runs select('id')->chunkById() on the result. Users and subscribers are
+    |   not de-duplicated, so exclude addresses the subscriber list already has.
+    |
+    |   final class NewsletterUsers
+    |   {
+    |       public function __invoke(Builder $query): Builder
+    |       {
+    |           return $query->whereNotNull('email_verified_at')
+    |               ->where('marketing', true)
+    |               ->whereNotIn('email', MailingSubscriber::query()->subscribed()->select('email'));
+    |       }
+    |   }
+    |
+    | type_scopes: maps a MailingType `code` to another invokable with the same
+    |   __invoke(Builder $query): Builder signature, applied on top of
+    |   `users_query`, so mailing types can target different audiences.
     |
     */
 
     'audience' => [
-        // Optional closure (fn (Builder $q) => Builder) to scope eligible users.
-        // Leave null to use the default (verified users). NOTE: closures are not
-        // config-cacheable — set this from a service provider's boot() at runtime
-        // (e.g. config(['newsletter.audience.users_query' => fn ($q) => ...])) so
-        // `php artisan config:cache` keeps working.
+        // Invokable class-string, e.g. App\Support\Newsletter\NewsletterUsers::class.
+        // Null = verified users.
         'users_query' => null,
 
-        // Optional per-mailing-type closures, same caveat as above.
+        // ['mailing-type-code' => App\Support\Newsletter\SomeScope::class, ...]
         'type_scopes' => [],
     ],
 
@@ -237,18 +247,19 @@ return [
     | Host callbacks
     |--------------------------------------------------------------------------
     |
-    | Hooks that bridge the package to host-specific user behaviour. Each is an
-    | optional callable; leave null to no-op.
+    | Hooks that bridge the package to host-specific user behaviour. Each is the
+    | class-string of an invokable class (never a closure, see above); leave
+    | null to no-op.
     |
-    | subscribe_existing_user: fn ($user) => void — invoked when someone
+    | subscribe_existing_user: __invoke(User $user): void, called when someone
     |   subscribes with an email that already belongs to a registered user
-    |   (e.g. flip a marketing opt-in flag).
+    |   (e.g. set a marketing opt-in flag).
     |
-    | unsubscribe_user: fn ($user) => void — invoked when a registered user
-    |   unsubscribes (e.g. clear the marketing opt-in flag).
+    | unsubscribe_user: __invoke(User $user): void, called when a registered
+    |   user unsubscribes (e.g. clear the marketing opt-in flag).
     |
-    | find_user_by_uuid: fn (string $uuid) => ?Model — resolve a registered
-    |   user from the public uuid used in unsubscribe links. Defaults to
+    | find_user_by_uuid: __invoke(string $uuid): ?User, resolves a registered
+    |   user from the public uuid used in unsubscribe links. Null uses
     |   `User::where('uuid', $uuid)`; override if you store uuids differently
     |   (e.g. binary/efficient uuids).
     |

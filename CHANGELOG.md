@@ -2,6 +2,16 @@
 
 All notable changes to `a2zwebltd/laravel-newsletter` are documented here.
 
+## 1.3.0 - 2026-09-23
+
+### Added
+- Laravel Boost resources: `resources/boost/guidelines/core.blade.php` (the must-know rules) and the `newsletter-development` skill (install, audience and callbacks, subscribe contract, custom routes and pages, templates, queues, events, Nova, upgrading, testing).
+- A log warning when a mailing goes to a recipient without a `uuid` (the unsubscribe link and `List-Unsubscribe` header are left out), and when neither `unsubscribe.one-click` nor `unsubscribe.show` is registered. Sending is unchanged.
+
+### Changed
+- `config/newsletter.php` and the README document the hooks (`audience.users_query`, `audience.type_scopes.*`, `callbacks.*`) as invokable class-strings with their `__invoke` signatures. The old advice to set closures with `config()` at runtime is gone.
+- The bundled `mailing` template checks `Route::has()` before linking to `mailing` and `unsubscribe.show`, so it renders when the routes are disabled.
+
 ## 1.2.0 - 2026-09-11
 
 ### Added
