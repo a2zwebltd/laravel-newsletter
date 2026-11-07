@@ -118,9 +118,12 @@ return [
     |
     | registered_users: what happens when the posted address belongs to a
     |   registered user.
-    |   'callback'   hand the user to `callbacks.subscribe_existing_user` and
-    |                never create a subscriber row (the audience reaches them
-    |                through `audience.users_query`).
+    |   'callback'   the user posting their own address while signed in is
+    |                handed straight to `callbacks.subscribe_existing_user`.
+    |                Anyone else posting that address starts the normal
+    |                double opt-in; when the link is clicked the callback runs
+    |                and the subscriber row is deleted (the audience reaches
+    |                the user through `audience.users_query`).
     |   'subscriber' treat the address like any other: create / refresh a
     |                MailingSubscriber row and send the verification mail. Use
     |                this when your users are not mailed as users (an empty
@@ -251,9 +254,10 @@ return [
     | class-string of an invokable class (never a closure, see above); leave
     | null to no-op.
     |
-    | subscribe_existing_user: __invoke(User $user): void, called when someone
-    |   subscribes with an email that already belongs to a registered user
-    |   (e.g. set a marketing opt-in flag).
+    | subscribe_existing_user: __invoke(User $user): void, called when a
+    |   registered user's address is subscribed and the owner is proven: they
+    |   are signed in, or they clicked the verification link (e.g. set a
+    |   marketing opt-in flag).
     |
     | unsubscribe_user: __invoke(User $user): void, called when a registered
     |   user unsubscribes (e.g. clear the marketing opt-in flag).

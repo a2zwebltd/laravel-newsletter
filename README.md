@@ -80,7 +80,7 @@ form cannot be used to enumerate addresses. What happens behind the scenes:
 | a pending (unverified) subscriber | verification mail sent again |
 | a verified subscriber | nothing (no mail) |
 | an unsubscribed subscriber | `unsubscribed_at` and `verified_at` cleared; verification mail sent (the address confirms again) |
-| a registered user | `subscribe.registered_users`: `callback` (default) hands the user to `callbacks.subscribe_existing_user`, no subscriber row; `subscriber` treats the address exactly like a new one |
+| a registered user | `subscribe.registered_users`: `callback` (default) hands the user to `callbacks.subscribe_existing_user` straight away only when they are signed in and post their own address; otherwise the address gets the verification mail, and the click runs the callback and deletes the subscriber row. `subscriber` treats the address exactly like a new one |
 
 The route is throttled (`routes.subscribe_middleware`, `['throttle:10,1']` by
 default), which also rate-limits the re-sent verification mails.

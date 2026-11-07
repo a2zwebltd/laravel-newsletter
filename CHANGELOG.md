@@ -2,6 +2,11 @@
 
 All notable changes to `a2zwebltd/laravel-newsletter` are documented here.
 
+## 1.4.0 - 2026-11-07
+
+### Security
+- `POST newsletter.subscribe` no longer opts a registered user into marketing mail just because someone typed their address. In the default `subscribe.registered_users` = `callback` mode, `callbacks.subscribe_existing_user` now runs at once only when the signed-in user posts their own address. Any other request for a registered address gets the normal double opt-in: a pending subscriber and a verification mail. The click runs the callback and deletes the subscriber row (after `SubscriberVerified`), so the user stays reachable only through `users_query`.
+
 ## 1.3.1 - 2026-09-23
 
 ### Fixed

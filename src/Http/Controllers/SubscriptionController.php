@@ -27,9 +27,14 @@ class SubscriptionController extends Controller
     /**
      * Subscribe an email address. Always answers 200 with the same message so
      * the endpoint cannot be used to tell which addresses are known:
-     *  - registered user: handed to the `subscribe_existing_user` callback
-     *    (or treated as a subscriber when `subscribe.registered_users` is
-     *    'subscriber');
+     *  - registered user posting their own address while signed in: handed
+     *    straight to the `subscribe_existing_user` callback;
+     *  - registered user's address posted by anyone else: double opt-in like
+     *    a new address; the callback runs only once the inbox owner clicks
+     *    the verification link (see verify()). Without this, anyone could
+     *    opt any account holder into marketing mail just by knowing the
+     *    address. With `subscribe.registered_users` = 'subscriber' the
+     *    address is always treated as a plain subscriber;
      *  - known verified subscriber: nothing changes, no mail;
      *  - known unsubscribed subscriber: `unsubscribed_at` cleared, address has
      *    to confirm again (verification mail sent);
@@ -54,11 +59,8 @@ class SubscriptionController extends Controller
         $response = response()->json(['message' => $this->subscribedMessage()]);
 
         $user = $this->treatsRegisteredUsersAsSubscribers() ? null : $this->findUserByEmail($email);
-        if ($user) {
-            $callback = $this->resolveCallable(config('newsletter.callbacks.subscribe_existing_user'));
-            if ($callback !== null) {
-                $callback($user);
-            }
+        if ($user && $this->isSignedInAs($request, $user)) {
+            $this->subscribeExistingUser($user);
 
             return $response;
         }
@@ -95,6 +97,8 @@ class SubscriptionController extends Controller
             $subscriber->update(['verified_at' => now()]);
 
             event(new SubscriberVerified($subscriber));
+
+            $this->handOverToRegisteredUser($subscriber);
         }
 
         $view = config('newsletter.views.verified');
@@ -182,6 +186,47 @@ class SubscriptionController extends Controller
         }
 
         event(new SubscriberUnsubscribed($subscriber));
+    }
+
+    /**
+     * Once the inbox owner has confirmed, move a registered user's opt-in onto
+     * the account: run `subscribe_existing_user` and drop the subscriber row,
+     * so the user is mailed (and unsubscribes) only through `users_query`.
+     * The row is deleted after SubscriberVerified, so queued listeners of that
+     * event will not find it.
+     */
+    protected function handOverToRegisteredUser(MailingSubscriber $subscriber): void
+    {
+        if ($this->treatsRegisteredUsersAsSubscribers()) {
+            return;
+        }
+
+        $user = $this->findUserByEmail(strtolower(trim($subscriber->getEmail())));
+        if (! $user) {
+            return;
+        }
+
+        $this->subscribeExistingUser($user);
+        $subscriber->delete();
+    }
+
+    protected function subscribeExistingUser(Model $user): void
+    {
+        $callback = $this->resolveCallable(config('newsletter.callbacks.subscribe_existing_user'));
+        if ($callback !== null) {
+            $callback($user);
+        }
+    }
+
+    /**
+     * Whether the request comes from the account that owns the posted address,
+     * which proves the inbox as well as a verification click would.
+     */
+    protected function isSignedInAs(Request $request, Model $user): bool
+    {
+        $signedIn = $request->user();
+
+        return $signedIn instanceof Model && $signedIn->is($user);
     }
 
     protected function treatsRegisteredUsersAsSubscribers(): bool

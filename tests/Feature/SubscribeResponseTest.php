@@ -22,8 +22,10 @@ it('answers 200 with the same message for a new, verified, unverified, unsubscri
             ->assertExactJson(['message' => SUBSCRIBED_MESSAGE]);
     }
 
-    // New, pending and returning addresses get a verification mail; verified and registered do not.
-    Mail::assertSentCount(3);
+    // New, pending, returning and registered addresses (posted by a guest) get a
+    // verification mail; verified subscribers do not.
+    Mail::assertSentCount(4);
+    Mail::assertSent(NewsletterVerificationMail::class, fn ($mail) => $mail->hasTo('member@example.com'));
     Mail::assertSent(NewsletterVerificationMail::class, fn ($mail) => $mail->hasTo('new@example.com'));
     Mail::assertSent(NewsletterVerificationMail::class, fn ($mail) => $mail->hasTo('pending@example.com'));
     Mail::assertSent(NewsletterVerificationMail::class, fn ($mail) => $mail->hasTo('gone@example.com'));

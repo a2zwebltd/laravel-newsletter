@@ -190,7 +190,7 @@ class FindUserByUuid
 - new address: pending `MailingSubscriber`, verification mail (`NewsletterVerificationMail`, link to `newsletter.verify`);
 - pending subscriber: verification mail again; verified subscriber: nothing;
 - unsubscribed subscriber: `markAsSubscribed()` then a new verification mail;
-- registered user: `registered_users = callback` calls `subscribe_existing_user` and creates no subscriber row (reach them through `users_query`); `subscriber` treats the address like any other. Use `subscriber` when `users_query` does not mail users, or an account holder who signs up in the footer never gets anything.
+- registered user: `registered_users = callback` calls `subscribe_existing_user` at once only when that user is signed in and posts their own address. Anyone else gets the double opt-in; the verification click runs the callback and deletes the subscriber row after `SubscriberVerified` (reach them through `users_query`; a queued `SubscriberVerified` listener will not find that row). Never call the callback from a custom subscribe route without the same proof, or anyone can opt any account in; `subscriber` treats the address like any other. Use `subscriber` when `users_query` does not mail users, or an account holder who signs up in the footer never gets anything.
 
 Front-end code must not branch on the status code or the message. The package's form partial (`newsletter::partials.newsletter-form`) posts JSON with the CSRF token.
 
